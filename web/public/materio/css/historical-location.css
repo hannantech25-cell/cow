@@ -1,0 +1,32 @@
+/* Point dot for movement log */
+.point-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0;
+}
+
+/* Timeline column with vertical connector line */
+.timeline-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.timeline-col::before {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: calc(100% + 1px);
+  background: #e0e0e0;
+  z-index: 0;
+}
+tr:last-child .timeline-col::before { display: none; }
+
+.tl-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px currentColor;
+  position: relative; z-index: 1; flex-shrink: 0;
+}

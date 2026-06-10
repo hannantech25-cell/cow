@@ -1,0 +1,127 @@
+services:
+
+  # ── MQTT Broker ─────────────────────────────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - cow_network
+    restart: unless-stopped
+
+  # ── Time-Series Database ─────────────────────────────────────────────────────
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - ./influxdb/config:/etc/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin@1234
+      - DOCKER_INFLUXDB_INIT_ORG=cow_org
+      - DOCKER_INFLUXDB_INIT_BUCKET=cow
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=cow-super-secret-token
+    networks:
+      - cow_network
+    restart: unless-stopped
+
+  # ── REST API + SQLite ────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+    container_name: api
+    ports:
+      - "3000:3000"
+    volumes:
+      - api_data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+
+      # SQLite — persisted to the api_data named volume
+      - DB_PATH=/app/data/database.sqlite
+
+      # JWT
+      - JWT_SECRET=cow-jwt-super-secret-change-in-production
+      - JWT_EXPIRES_IN=7d
+
+      # MQTT — uses internal Docker hostname
+      - MQTT_PROTOCOL=mqtt
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+
+      # InfluxDB — uses internal Docker hostname
+      - INFLUX_HOST=influxdb
+      - INFLUX_PORT=8086
+      - INFLUX_TOKEN=cow-super-secret-token
+      - INFLUX_DATABASE=cow
+
+      # CORS — allow requests from the web container and local browser
+      - CORS_ORIGIN=http://localhost:80,http://localhost:3000
+    depends_on:
+      - mosquitto
+      - influxdb
+    networks:
+      - cow_network
+    restart: unless-stopped
+
+  # ── Data Bridge (MQTT → InfluxDB) ───────────────────────────────────────────
+  bridge:
+    build:
+      context: ./bridge
+    container_name: bridge
+    volumes:
+      - api_data:/app/data      # shared SQLite — bridge reads + writes, API reads + writes
+    environment:
+      - MQTT_PROTOCOL=mqtt
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+
+      - INFLUX_HOST=influxdb
+      - INFLUX_PORT=8086
+      - INFLUX_TOKEN=cow-super-secret-token
+      - INFLUX_DATABASE=cow
+
+      - DB_PATH=/app/data/database.sqlite
+    depends_on:
+      - mosquitto
+      - influxdb
+      - api
+    networks:
+      - cow_network
+    restart: unless-stopped
+
+  # ── Web Dashboard (Next.js) ──────────────────────────────────────────────────
+  web:
+    build:
+      context: ./web
+      args:
+        # API_URL used by Next.js rewrites at build time (internal Docker hostname)
+        - API_URL=http://api:3000
+    container_name: web
+    ports:
+      - "80:3000"
+    depends_on:
+      - api
+    networks:
+      - cow_network
+    restart: unless-stopped
+
+networks:
+  cow_network:
+    driver: bridge
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  influxdb_data:
+  api_data:          # SQLite database persistence

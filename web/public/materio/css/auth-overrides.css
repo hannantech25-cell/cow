@@ -1,0 +1,16 @@
+.btn-login {
+  background-color: #1c1c1c !important;
+  border-color: #1c1c1c !important;
+  color: #ffffff !important;
+}
+.btn-login:hover {
+  background-color: #3a3a3a !important;
+  border-color: #3a3a3a !important;
+}
+.btn-login:disabled {
+  opacity: 0.65;
+}
+.card-body .form-check-label,
+.card-body a {
+  color: #1c1c1c;
+}
