@@ -138,12 +138,16 @@ API_URL=http://api.railway.internal:3000
 
 Go to each service → **Volumes** tab → **Add Volume** and set the mount path.
 
-| Service | Mount Path |
-|---------|-----------|
-| `influxdb` | `/var/lib/influxdb2` |
-| `api` | `/app/data` |
-| `bridge` | `/app/data` |
-| `mosquitto` | `/mosquitto/data` |
+| Service | Mount Path | Stores |
+|---------|-----------|--------|
+| `influxdb` | `/var/lib/influxdb2` | InfluxDB time-series data |
+| `api` | `/app/data` | SQLite database (`database.sqlite`) |
+| `bridge` | `/app/data` | SQLite database (`database.sqlite`) |
+| `mosquitto` | `/mosquitto/data` | MQTT persistence |
+
+> `web` does not need a volume — it has no persistent data.
+
+> `api` and `bridge` both use `DB_PATH=/app/data/database.sqlite`. Each service gets its own separate volume at `/app/data` — they do not share the same SQLite file on Railway (see Overview for details).
 
 ---
 
