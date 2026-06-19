@@ -1,3 +1,4 @@
 FROM eclipse-mosquitto:latest
 COPY config/mosquitto.conf /mosquitto/config/mosquitto.conf
-RUN mosquitto_passwd -b -c /mosquitto/config/passwd cow cow@1234
+RUN mosquitto_passwd -b -c /mosquitto/config/passwd cow cow@1234 && \
+    chmod 0644 /mosquitto/config/passwd
